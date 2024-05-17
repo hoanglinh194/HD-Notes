@@ -1,37 +1,75 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Stack } from "expo-router";
+import { Box, GluestackUIProvider } from "@gluestack-ui/themed";
+import { config } from "@/configs/gluestack";
+import { Slot, usePathname } from "expo-router";
+import {
+  Entypo,
+  FontAwesome,
+  Ionicons,
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
+// import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
+import { StatusBar } from "expo-status-bar";
+import { Platform } from "react-native";
+import { ReactNode } from "react";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { AuthProvider } from "@/features/auth";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+interface ChildrenProps {
+  children: ReactNode;
+}
+const AuthWrapper = ({ children }: ChildrenProps) => {
+  const pathname = usePathname();
+  const [fontsLoaded] = useFonts({
+    ...MaterialCommunityIcons.font,
+    ...FontAwesome.font,
+    ...Ionicons.font,
+    ...Entypo.font,
+    ...MaterialIcons.font,
+    // ...loadFonts,
   });
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+  const isAppReady = Platform.OS === "web" || fontsLoaded;
 
-  if (!loaded) {
-    return null;
-  }
+  return !isAppReady ? null : (
+    <SafeAreaProvider>
+      {/* <NavThemeProvider> */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ActionSheetProvider>
+          <Box flex={1} bgColor="$white">
+            {/* <StatusBar backgroundColor={config.tokens.colors.primary400} /> */}
+            <StatusBar />
+            {children}
+          </Box>
+        </ActionSheetProvider>
+      </GestureHandlerRootView>
+      {/* </NavThemeProvider> */}
+    </SafeAreaProvider>
+  );
+};
 
+const CognitoWrapper = ({ children }: ChildrenProps) => {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <GluestackUIProvider config={config}>
+      <AuthProvider>
+        <AuthWrapper>{children}</AuthWrapper>
+      </AuthProvider>
+    </GluestackUIProvider>
+  );
+};
+
+export default function RootLayout() {
+  return (
+    <CognitoWrapper>
+      <Slot />
+    </CognitoWrapper>
+    // <Stack>
+    //   <Stack.Screen name="index" options={{headerShown: false}}/>
+    // </Stack>
   );
 }
